@@ -1,0 +1,6 @@
+{
+  "name": "Raghav Sharma Portfolio",
+  "description": "A dark, highly immersive cinematic portfolio landing page featuring GSAP animations, Framer Motion, and HLS video streaming integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
