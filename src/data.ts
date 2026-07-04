@@ -29,6 +29,15 @@ export interface ExplorationItem {
 
 export const PROJECTS: Project[] = [
   {
+    id: "attendance-management-gndu",
+    title: "Attendance Management GNDU",
+    category: "Web App",
+    description: "A student attendance management system built for GNDU workflows and classroom tracking.",
+    imageUrl: "https://opengraph.githubassets.com/1/techwithbuddy/Attendance-management-gndu",
+    colSpanClass: "md:col-span-7",
+    aspectRatioClass: "aspect-[4/3] md:aspect-[16/10]",
+  },
+  {
     id: "automotive-motion",
     title: "Automotive Motion",
     category: "CGI & Interaction",

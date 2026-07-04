@@ -1,5 +1,72 @@
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { PROJECTS, Project } from "../data";
+import { Project } from "../data";
+
+interface GitHubRepo {
+  name: string;
+  description: string | null;
+  html_url: string;
+  homepage: string | null;
+  language: string | null;
+  stargazers_count: number;
+  updated_at: string;
+}
+
+interface FeaturedProjectConfig {
+  repoName: string;
+  title: string;
+  colSpanClass: string;
+  aspectRatioClass: string;
+}
+
+const GITHUB_REPOS_URL = "https://api.github.com/users/techwithbuddy/repos?per_page=100&sort=updated";
+
+const FEATURED_PROJECTS: FeaturedProjectConfig[] = [
+  {
+    repoName: "Attendance-management-gndu",
+    title: "Attendance Management GNDU",
+    colSpanClass: "md:col-span-7",
+    aspectRatioClass: "aspect-[4/3] md:aspect-[16/10]",
+  },
+  {
+    repoName: "NetProbe-Port-Scanner",
+    title: "NetProbe Port Scanner",
+    colSpanClass: "md:col-span-5",
+    aspectRatioClass: "aspect-[4/3] md:aspect-square",
+  },
+  {
+    repoName: "sikshaflow",
+    title: "SikshaFlow",
+    colSpanClass: "md:col-span-12",
+    aspectRatioClass: "aspect-[4/3] md:aspect-[21/9]",
+  },
+];
+
+function buildFallbackProject(config: FeaturedProjectConfig): Project {
+  return {
+    id: config.repoName,
+    title: config.title,
+    category: "GitHub Project",
+    description: `A featured repository from the GitHub profile: ${config.title}.`,
+    imageUrl: `https://opengraph.githubassets.com/1/techwithbuddy/${config.repoName}`,
+    colSpanClass: config.colSpanClass,
+    aspectRatioClass: config.aspectRatioClass,
+  };
+}
+
+function buildLiveProject(repo: GitHubRepo, config: FeaturedProjectConfig): Project {
+  return {
+    id: repo.name,
+    title: config.title,
+    category: repo.language ?? "GitHub Project",
+    description:
+      repo.description?.trim() ||
+      `A live repository pulled from the GitHub profile and shown as a featured project.`,
+    imageUrl: `https://opengraph.githubassets.com/1/techwithbuddy/${repo.name}`,
+    colSpanClass: config.colSpanClass,
+    aspectRatioClass: config.aspectRatioClass,
+  };
+}
 
 interface SelectedWorksProps {
   onProjectClick: (project: Project) => void;
@@ -7,6 +74,51 @@ interface SelectedWorksProps {
 }
 
 export default function SelectedWorks({ onProjectClick, onViewAllClick }: SelectedWorksProps) {
+  const [projects, setProjects] = useState<Project[]>(FEATURED_PROJECTS.map(buildFallbackProject));
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
+  const [projectLoadError, setProjectLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadProjects = async () => {
+      try {
+        setIsLoadingProjects(true);
+        setProjectLoadError(null);
+
+        const response = await fetch(GITHUB_REPOS_URL);
+        if (!response.ok) {
+          throw new Error(`GitHub request failed with status ${response.status}`);
+        }
+
+        const repos = (await response.json()) as GitHubRepo[];
+        const repoByName = new Map(repos.map((repo) => [repo.name.toLowerCase(), repo]));
+        const liveProjects = FEATURED_PROJECTS.map((config) => {
+          const repo = repoByName.get(config.repoName.toLowerCase());
+          return repo ? buildLiveProject(repo, config) : buildFallbackProject(config);
+        });
+
+        if (isActive) {
+          setProjects(liveProjects);
+        }
+      } catch {
+        if (isActive) {
+          setProjectLoadError("GitHub could not be reached, so the local featured-project fallback is being shown.");
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingProjects(false);
+        }
+      }
+    };
+
+    void loadProjects();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   return (
     <section id="work" className="bg-bg py-20 md:py-28 select-none border-b border-stroke">
       <div className="max-w-[1200px] mx-auto px-6 md:px-10 lg:px-16">
@@ -33,7 +145,7 @@ export default function SelectedWorks({ onProjectClick, onViewAllClick }: Select
             </h2>
             {/* Subtext */}
             <p className="text-sm text-muted leading-relaxed font-sans">
-              A selection of projects I've worked on, from concept to launch. Click any project to inspect details.
+              A live selection of featured GitHub repositories. Click any project to inspect details.
             </p>
           </div>
 
@@ -47,6 +159,15 @@ export default function SelectedWorks({ onProjectClick, onViewAllClick }: Select
             </button>
           </div>
         </motion.div>
+
+        <div className="mb-4 text-[10px] uppercase tracking-[0.3em] text-muted/80">
+          {isLoadingProjects ? "syncing featured projects" : "featured projects synced"}
+        </div>
+        {projectLoadError && (
+          <div className="mb-6 text-[10px] uppercase tracking-[0.3em] text-muted/70">
+            {projectLoadError}
+          </div>
+        )}
 
         {/* Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
